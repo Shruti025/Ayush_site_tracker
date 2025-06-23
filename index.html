@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>100 Day Challenge Tracker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(to right, #ffecd2, #fcb69f);
+            color: #333;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            color: #4e4e4e;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 50px);
+            gap: 12px;
+        }
+
+        .tile {
+            width: 50px;
+            height: 50px;
+            background-color: white;
+            border: 2px solid #ff7f50;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .tile:hover:not(.disabled):not(.completed) {
+            background-color: #ffe4d1;
+            transform: scale(1.05);
+        }
+
+        .completed {
+            background-color: #ff7f50;
+            color: white;
+            text-decoration: line-through;
+        }
+
+        .disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* Overlay */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            display: none;
+            z-index: 999;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Popups */
+        .popup, .error-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+            width: 320px;
+            text-align: center;
+            animation: popupIn 0.3s ease;
+        }
+
+        .popup input, .popup textarea {
+            width: 90%;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+        .popup button, .error-popup button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 8px;
+            background-color: #ff7f50;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .popup button:hover, .error-popup button:hover {
+            background-color: #ff5722;
+        }
+
+        @keyframes popupIn {
+            from { transform: translate(-50%, -60%); opacity: 0; }
+            to { transform: translate(-50%, -50%); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>💗 My sight visiting his sites 💗</h1>
+    <div class="grid" id="grid"></div>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Site Entry Popup -->
+    <div class="popup" id="popup">
+        <h3>Add Site Details</h3>
+        <input type="text" id="siteName" placeholder="Site Name">
+        <textarea rows="3" placeholder="Details Shruti should know?"></textarea>
+        <button onclick="saveEntry()">Save</button>
+    </div>
+
+    <!-- Error Popup -->
+    <div class="error-popup" id="errorPopup">
+        <h3>Haha! Nice try.</h3>
+        <p>Only one site visit per day.</p>
+        <button onclick="closeErrorPopup()">Okay, Smart move Shruti</button>
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const popup = document.getElementById('popup');
+        const errorPopup = document.getElementById('errorPopup');
+        const overlay = document.getElementById('overlay');
+        const siteNameInput = document.getElementById('siteName');
+        const siteDetailsInput = document.getElementById('siteDetails');
+
+        let completedDays = JSON.parse(localStorage.getItem('completedDays')) || [];
+        let siteEntries = JSON.parse(localStorage.getItem('siteEntries')) || {};
+        let nextDay = completedDays.length + 1;
+        let today = new Date().toLocaleDateString();
+        let lastClickedDate = /*localStorage.getItem('lastClickedDate');*/new Date().toLocaleDateString()
+        let currentTile = null;
+
+        for (let i = 1; i <= 100; i++) {
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.innerText = i;
+
+            if (completedDays.includes(i)) {
+                tile.classList.add('completed');
+            }
+
+            if (i !== nextDay && !completedDays.includes(i)) {
+                tile.classList.add('disabled');
+            }
+
+            tile.addEventListener('click', () => {
+                if (i === nextDay) {
+                    if (lastClickedDate === today) {
+                        showErrorPopup();
+                        return;
+                    }
+                    currentTile = i;
+                    showPopup();
+                }
+            });
+
+            grid.appendChild(tile);
+        }
+
+        function showPopup() {
+            popup.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function hidePopup() {
+            popup.style.display = 'none';
+            overlay.style.display = 'none';
+            siteNameInput.value = '';
+            siteDetailsInput.value = '';
+        }
+
+        function showErrorPopup() {
+            errorPopup.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function closeErrorPopup() {
+            errorPopup.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+
+        function saveEntry() {
+            const siteName = siteNameInput.value.trim();
+            const siteDetails = siteDetailsInput.value.trim();
+
+            if (siteName === '' || siteDetails === '') {
+                alert('Please fill in both fields.');
+                return;
+            }
+
+            // Save site entry
+            siteEntries[currentTile] = { siteName, siteDetails };
+            localStorage.setItem('siteEntries', JSON.stringify(siteEntries));
+
+            // Mark as completed
+            const tiles = document.querySelectorAll('.tile');
+            tiles[currentTile - 1].classList.add('completed');
+            completedDays.push(currentTile);
+            localStorage.setItem('completedDays', JSON.stringify(completedDays));
+
+            lastClickedDate = today;
+            localStorage.setItem('lastClickedDate', today);
+
+            nextDay++;
+            enableNextTile();
+            hidePopup();
+        }
+
+        function enableNextTile() {
+            const tiles = document.querySelectorAll('.tile');
+            tiles.forEach(tile => {
+                tile.classList.add('disabled');
+            });
+
+            if (nextDay <= 100) {
+                tiles[nextDay - 1].classList.remove('disabled');
+            }
+        }
+    </script>
+
+</body>
+</html>
