@@ -112,6 +112,20 @@
             background-color: #ff5722;
         }
 
+        /* Tooltip styling */
+        .tooltip {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: none;
+            z-index: 2000;
+            max-width: 250px;
+            word-wrap: break-word;
+        }
+
         @keyframes popupIn {
             from { transform: translate(-50%, -60%); opacity: 0; }
             to { transform: translate(-50%, -50%); opacity: 1; }
@@ -125,7 +139,7 @@
 </head>
 <body>
 
-    <h1>💗 100 Site Visit Challenge 💗</h1>
+    <h1>💗 100-Day Challenge 💗</h1>
     <div class="grid" id="grid"></div>
 
     <!-- Overlay -->
@@ -146,6 +160,9 @@
         <button onclick="closeErrorPopup()">Okay, Smart move Shruti</button>
     </div>
 
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip"></div>
+
     <script>
         const grid = document.getElementById('grid');
         const popup = document.getElementById('popup');
@@ -153,6 +170,7 @@
         const overlay = document.getElementById('overlay');
         const siteNameInput = document.getElementById('siteName');
         const siteDetailsInput = document.getElementById('siteDetails');
+        const tooltip = document.getElementById('tooltip');
 
         let completedDays = JSON.parse(localStorage.getItem('completedDays')) || [];
         let siteEntries = JSON.parse(localStorage.getItem('siteEntries')) || {};
@@ -173,6 +191,30 @@
             if (i !== nextDay && !completedDays.includes(i)) {
                 tile.classList.add('disabled');
             }
+
+            // Tooltip functionality
+            tile.addEventListener('mouseenter', (e) => {
+                if (tile.classList.contains('completed')) {
+                    const entry = siteEntries[i];
+                    if (entry) {
+                        tooltip.innerHTML = `<strong>${entry.siteName}</strong><br>${entry.siteDetails}`;
+                        tooltip.style.display = 'block';
+                        tooltip.style.top = (e.pageY + 15) + 'px';
+                        tooltip.style.left = (e.pageX + 15) + 'px';
+                    }
+                }
+            });
+
+            tile.addEventListener('mousemove', (e) => {
+                if (tooltip.style.display === 'block') {
+                    tooltip.style.top = (e.pageY + 15) + 'px';
+                    tooltip.style.left = (e.pageX + 15) + 'px';
+                }
+            });
+
+            tile.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
+            });
 
             tile.addEventListener('click', () => {
                 if (i === nextDay) {
@@ -219,11 +261,9 @@
                 return;
             }
 
-            // Save site entry
             siteEntries[currentTile] = { siteName, siteDetails };
             localStorage.setItem('siteEntries', JSON.stringify(siteEntries));
 
-            // Mark as completed
             const tiles = document.querySelectorAll('.tile');
             tiles[currentTile - 1].classList.add('completed');
             completedDays.push(currentTile);
