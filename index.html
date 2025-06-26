@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>100 Site Visit Tracker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>100 Day Challenge Tracker</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -18,14 +17,12 @@
       color: #333;
       padding: 20px;
     }
-
     h1 {
       margin-bottom: 30px;
       font-size: 2.2rem;
       color: #4e4e4e;
       text-align: center;
     }
-
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
@@ -33,7 +30,6 @@
       max-width: 500px;
       width: 100%;
     }
-
     .tile {
       width: 100%;
       aspect-ratio: 1/1;
@@ -49,132 +45,111 @@
       transition: all 0.3s ease;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
-
     .tile:hover:not(.disabled):not(.completed) {
       background-color: #ffe4d1;
       transform: scale(1.05);
     }
-
     .completed {
       background-color: #ff7f50;
       color: white;
       text-decoration: line-through;
     }
-
     .disabled {
       cursor: not-allowed;
       opacity: 0.5;
     }
-
-    .overlay,
-    .popup,
-    .error-popup,
-    .tooltip,
-    .milestone-popup {
+    .popup, .error-popup, .milestone-popup {
       position: fixed;
-      z-index: 999;
-    }
-
-    .overlay {
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.4);
-      display: none;
-    }
-
-    .popup,
-    .error-popup,
-    .milestone-popup {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background-color: white;
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-      display: none;
-      width: 320px;
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
       text-align: center;
-      animation: popupIn 0.3s ease;
+      z-index: 3000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      display: none;
     }
-
-    .popup input,
-    .popup textarea {
+    .popup input, .popup textarea {
       width: 90%;
       margin-bottom: 10px;
       padding: 8px;
       border-radius: 8px;
       border: 1px solid #ccc;
     }
-
-    .popup button,
-    .error-popup button,
-    .milestone-popup button {
-      padding: 8px 15px;
+    .popup button, .error-popup button, .milestone-popup button {
+      background: #ff7f50;
       border: none;
-      border-radius: 8px;
-      background-color: #ff7f50;
+      padding: 10px 20px;
+      border-radius: 10px;
       color: white;
       font-weight: bold;
       cursor: pointer;
     }
-
-    .popup button:hover,
-    .error-popup button:hover,
-    .milestone-popup button:hover {
-      background-color: #ff5722;
+    .tooltip {
+      position: absolute;
+      background-color: white;
+      color: #333;
+      padding: 15px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      display: none;
+      z-index: 2000;
+      max-width: 280px;
+      word-wrap: break-word;
+      line-height: 1.5;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
+      border: 1px solid #ff7f50;
+      text-align: left;
+      pointer-events: none;
     }
-
-    @keyframes popupIn {
-      from {
-        transform: translate(-50%, -60%);
-        opacity: 0;
-      }
-
-      to {
-        transform: translate(-50%, -50%);
-        opacity: 1;
-      }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 2999;
     }
   </style>
 </head>
-
 <body>
-  <h1>💗 100 Site Visit Challenge 💗</h1>
+  <h1>💗 100-Day Challenge 💗</h1>
   <div class="grid" id="grid"></div>
 
-  <div class="overlay" id="overlay"></div>
-
+  <!-- Popups -->
   <div class="popup" id="popup">
     <h3>Add Site Details</h3>
     <input type="text" id="siteName" placeholder="Site Name">
     <textarea id="siteDetails" rows="3" placeholder="Details"></textarea>
     <button onclick="saveEntry()">Save</button>
   </div>
-
   <div class="error-popup" id="errorPopup">
     <h3>Haha! Nice try.</h3>
-    <p>Only one site visit per day.</p>
+    <p>Only one site visit per day from Day 4 onwards.</p>
     <button onclick="closeErrorPopup()">Okay, Smart move Shruti</button>
   </div>
-
   <div class="milestone-popup" id="milestonePopup">
     <h2>Hey! you reached a milestone!</h2>
     <p id="milestoneMessage"></p>
-    <button onclick="closeMilestonePopup()">YAY!</button>
+    <button onclick="closeMilestone()">YAY!</button>
   </div>
+  <div class="tooltip" id="tooltip"></div>
+  <canvas id="confettiCanvas"></canvas>
 
   <script>
     const grid = document.getElementById('grid');
     const popup = document.getElementById('popup');
     const errorPopup = document.getElementById('errorPopup');
     const milestonePopup = document.getElementById('milestonePopup');
+    const tooltip = document.getElementById('tooltip');
     const milestoneMessage = document.getElementById('milestoneMessage');
-    const overlay = document.getElementById('overlay');
     const siteNameInput = document.getElementById('siteName');
     const siteDetailsInput = document.getElementById('siteDetails');
+
+    const canvas = document.getElementById('confettiCanvas');
+    const confettiCtx = canvas.getContext('2d');
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     let completedDays = JSON.parse(localStorage.getItem('completedDays')) || [];
     let siteEntries = JSON.parse(localStorage.getItem('siteEntries')) || {};
@@ -182,138 +157,133 @@
     let today = new Date().toLocaleDateString();
     let lastClickedDate = localStorage.getItem('lastClickedDate');
     let currentTile = null;
+    const milestones = { 16: "hey its 16", 58: "yoo that's crazy", 100: "finally done" };
 
-    const milestoneMessages = {
-      16: "hey its 16",
-      58: "yoo that's crazy",
-      100: "finally done"
-    };
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function launchConfetti() {
+      const confetti = Array.from({ length: 100 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        r: Math.random() * 6 + 4,
+        d: Math.random() * 10 + 2,
+        color: `hsl(${Math.random() * 360}, 70%, 60%)`
+      }));
+
+      function draw() {
+        confettiCtx.clearRect(0, 0, canvas.width, canvas.height);
+        confetti.forEach(c => {
+          confettiCtx.beginPath();
+          confettiCtx.arc(c.x, c.y, c.r, 0, Math.PI * 2, false);
+          confettiCtx.fillStyle = c.color;
+          confettiCtx.fill();
+          c.y += c.d;
+        });
+        if (confetti.some(c => c.y < canvas.height)) requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    function showMilestone(message) {
+      milestoneMessage.innerText = message;
+      milestonePopup.style.display = 'block';
+      launchConfetti();
+    }
+
+    function closeMilestone() {
+      milestonePopup.style.display = 'none';
+    }
 
     for (let i = 1; i <= 100; i++) {
       const tile = document.createElement('div');
       tile.className = 'tile';
       tile.innerText = i;
 
-      if (completedDays.includes(i)) {
-        tile.classList.add('completed');
-      }
+      if (completedDays.includes(i)) tile.classList.add('completed');
+      if (i !== nextDay && !completedDays.includes(i)) tile.classList.add('disabled');
 
-      if (i !== nextDay && !completedDays.includes(i)) {
-        tile.classList.add('disabled');
-      }
+      tile.addEventListener('mouseenter', e => {
+        if (!isMobile && tile.classList.contains('completed') && siteEntries[i]) {
+          tooltip.innerHTML = `<strong>Name:</strong> ${siteEntries[i].siteName}<br><strong>Details:</strong> ${siteEntries[i].siteDetails}<br><strong>Date:</strong> ${siteEntries[i].date}`;
+          tooltip.style.display = 'block';
+          tooltip.style.top = (e.pageY + 15) + 'px';
+          tooltip.style.left = (e.pageX + 15) + 'px';
+        }
+      });
 
-      tile.addEventListener('click', () => {
+      tile.addEventListener('mousemove', e => {
+        if (!isMobile && tooltip.style.display === 'block') {
+          tooltip.style.top = (e.pageY + 15) + 'px';
+          tooltip.style.left = (e.pageX + 15) + 'px';
+        }
+      });
+
+      tile.addEventListener('mouseleave', () => {
+        if (!isMobile) tooltip.style.display = 'none';
+      });
+
+      tile.addEventListener('click', e => {
+        if (isMobile && tile.classList.contains('completed') && siteEntries[i]) {
+          tooltip.innerHTML = `<strong>Name:</strong> ${siteEntries[i].siteName}<br><strong>Details:</strong> ${siteEntries[i].siteDetails}<br><strong>Date:</strong> ${siteEntries[i].date}<br><button onclick=\"tooltip.style.display='none'\">Close</button>`;
+          tooltip.style.display = 'block';
+          tooltip.style.top = '40%';
+          tooltip.style.left = '50%';
+          tooltip.style.transform = 'translateX(-50%)';
+          tooltip.style.pointerEvents = 'auto';
+          return;
+        }
+
         if (i === nextDay) {
           if (nextDay >= 4 && lastClickedDate === today) {
-            showErrorPopup();
+            errorPopup.style.display = 'block';
             return;
           }
           currentTile = i;
-          showPopup();
+          popup.style.display = 'block';
         }
       });
 
       grid.appendChild(tile);
     }
 
-    function showPopup() {
-      popup.style.display = 'block';
-      overlay.style.display = 'block';
-    }
-
-    function hidePopup() {
-      popup.style.display = 'none';
-      overlay.style.display = 'none';
-      siteNameInput.value = '';
-      siteDetailsInput.value = '';
-    }
-
-    function showErrorPopup() {
-      errorPopup.style.display = 'block';
-      overlay.style.display = 'block';
-    }
-
     function closeErrorPopup() {
       errorPopup.style.display = 'none';
-      overlay.style.display = 'none';
-    }
-
-    function showMilestonePopup(message) {
-      milestoneMessage.innerText = message;
-      milestonePopup.style.display = 'block';
-      overlay.style.display = 'block';
-      launchConfetti();
-    }
-
-    function closeMilestonePopup() {
-      milestonePopup.style.display = 'none';
-      overlay.style.display = 'none';
     }
 
     function saveEntry() {
       const siteName = siteNameInput.value.trim();
       const siteDetails = siteDetailsInput.value.trim();
-      if (siteName === '' || siteDetails === '') {
-        alert('Please fill in both fields.');
-        return;
-      }
+      if (!siteName || !siteDetails) return alert("Please fill in both fields.");
 
       const date = new Date().toLocaleDateString();
       siteEntries[currentTile] = { siteName, siteDetails, date };
       localStorage.setItem('siteEntries', JSON.stringify(siteEntries));
-
-      const tiles = document.querySelectorAll('.tile');
-      tiles[currentTile - 1].classList.add('completed');
+      document.querySelectorAll('.tile')[currentTile - 1].classList.add('completed');
       completedDays.push(currentTile);
       localStorage.setItem('completedDays', JSON.stringify(completedDays));
 
       lastClickedDate = today;
       localStorage.setItem('lastClickedDate', today);
 
-      if (milestoneMessages[currentTile]) {
-        hidePopup();
-        showMilestonePopup(milestoneMessages[currentTile]);
-      } else {
-        hidePopup();
-      }
+      if (milestones[currentTile]) showMilestone(milestones[currentTile]);
 
       nextDay++;
       enableNextTile();
+      popup.style.display = 'none';
+      siteNameInput.value = '';
+      siteDetailsInput.value = '';
     }
 
     function enableNextTile() {
       const tiles = document.querySelectorAll('.tile');
       tiles.forEach(tile => tile.classList.add('disabled'));
-      if (nextDay <= 100) {
-        tiles[nextDay - 1].classList.remove('disabled');
-      }
-    }
-
-    // Simple confetti effect
-    function launchConfetti() {
-      for (let i = 0; i < 100; i++) {
-        const confetti = document.createElement('div');
-        confetti.style.position = 'fixed';
-        confetti.style.width = '8px';
-        confetti.style.height = '8px';
-        confetti.style.background = `hsl(${Math.random() * 360}, 70%, 60%)`;
-        confetti.style.top = `${Math.random() * 100}vh`;
-        confetti.style.left = `${Math.random() * 100}vw`;
-        confetti.style.opacity = '0.8';
-        confetti.style.zIndex = 2000;
-        confetti.style.borderRadius = '50%';
-        confetti.style.transition = 'transform 2s ease-out, opacity 2s';
-        document.body.appendChild(confetti);
-
-        setTimeout(() => {
-          confetti.style.transform = `translateY(${Math.random() * 300 + 100}px)`;
-          confetti.style.opacity = '0';
-        }, 0);
-
-        setTimeout(() => document.body.removeChild(confetti), 2000);
-      }
+      if (nextDay <= 100) tiles[nextDay - 1].classList.remove('disabled');
     }
   </script>
 </body>
-
 </html>
