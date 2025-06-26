@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>100 Day Challenge Tracker</title>
+  <title>100 Site Visit Tracker</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -114,7 +114,7 @@
   </style>
 </head>
 <body>
-  <h1>💗 100-Day Challenge 💗</h1>
+  <h1>💗 100 Site Visit Challenge 💗</h1>
   <div class="grid" id="grid"></div>
 
   <!-- Popups -->
@@ -126,7 +126,7 @@
   </div>
   <div class="error-popup" id="errorPopup">
     <h3>Haha! Nice try.</h3>
-    <p>Only one site visit per day from Day 4 onwards.</p>
+    <p>Only one site visit per day.</p>
     <button onclick="closeErrorPopup()">Okay, Smart move Shruti</button>
   </div>
   <div class="milestone-popup" id="milestonePopup">
@@ -157,8 +157,7 @@
     let today = new Date().toLocaleDateString();
     let lastClickedDate = localStorage.getItem('lastClickedDate');
     let currentTile = null;
-    const milestones = { 16: "hey its 16", 58: "yoo that's crazy", 100: "finally done" };
-
+    const milestones = { 16: "Are you like, Shruti why 16? Well obviously because it's your birth-date cutuu<br>Now go text Shruti - 'Milestone 1!'", 46: "Why 46? Well, you need to tell me<br>Now go text Shruti - 'Milestone 2!'", 100: "Nothing special here, 100 just looks good<br>Now go text Shruti - 'Milestone 3!'" };
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -190,7 +189,7 @@
     }
 
     function showMilestone(message) {
-      milestoneMessage.innerText = message;
+      milestoneMessage.innerHTML = message;
       milestonePopup.style.display = 'block';
       launchConfetti();
     }
@@ -271,7 +270,6 @@
       localStorage.setItem('lastClickedDate', today);
 
       if (milestones[currentTile]) showMilestone(milestones[currentTile]);
-
       nextDay++;
       enableNextTile();
       popup.style.display = 'none';
