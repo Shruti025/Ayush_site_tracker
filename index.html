@@ -3,30 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>100 Site Visit Tracker</title> 
+  <title>100 Site Visit Tracker</title>
   <style>
+    /* your CSS unchanged */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh; margin: 0;
       background: linear-gradient(to right, #ffecd2, #fcb69f);
-      color: #333;
-      padding: 20px;
+      color: #333; padding: 20px;
     }
     h1 { margin-bottom: 30px; font-size: 2.2rem; color: #4e4e4e; text-align: center; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(45px, 1fr)); gap: 10px; max-width: 500px; width: 100%; }
-    .tile { width: 100%; aspect-ratio: 1/1; background-color: white; border: 2px solid #ff7f50; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; font-weight: bold; transition: all 0.3s ease; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
+            gap: 10px; max-width: 500px; width: 100%; }
+    .tile { width: 100%; aspect-ratio: 1/1; background-color: white;
+            border: 2px solid #ff7f50; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; user-select: none; font-weight: bold;
+            transition: all 0.3s ease; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); }
     .tile:hover:not(.disabled):not(.completed) { background-color: #ffe4d1; transform: scale(1.05); }
     .completed { background-color: #ff7f50; color: white; text-decoration: line-through; }
     .disabled { cursor: not-allowed; opacity: 0.5; }
     .popup, .error-popup, .milestone-popup {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: white; padding: 30px; border-radius: 16px; text-align: center;
-      z-index: 3000; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); display: none;
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: white; padding: 30px; border-radius: 16px;
+      text-align: center; z-index: 3000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); display: none;
     }
     .popup input, .popup textarea { width: 90%; margin-bottom: 10px; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
     .popup button, .error-popup button, .milestone-popup button {
@@ -34,11 +38,11 @@
       border-radius: 10px; color: white; font-weight: bold; cursor: pointer;
     }
     .tooltip {
-      position: absolute; background-color: white; color: #333; padding: 15px;
-      border-radius: 12px; font-size: 0.95rem; display: none; z-index: 2000;
-      max-width: 280px; word-wrap: break-word; line-height: 1.5;
-      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2); border: 1px solid #ff7f50;
-      text-align: left; pointer-events: none;
+      position: absolute; background-color: white; color: #333;
+      padding: 15px; border-radius: 12px; font-size: 0.95rem;
+      display: none; z-index: 2000; max-width: 280px; word-wrap: break-word;
+      line-height: 1.5; box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
+      border: 1px solid #ff7f50; text-align: left; pointer-events: none;
     }
     canvas { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 2999; }
   </style>
@@ -54,25 +58,28 @@
     <textarea id="siteDetails" rows="3" placeholder="Details"></textarea>
     <button onclick="saveEntry()">Save</button>
   </div>
+
   <div class="error-popup" id="errorPopup">
     <h3>Haha! Nice try.</h3>
     <p>Only one site visit per day.</p>
     <button onclick="closeErrorPopup()">Okay, Smart move Shruti</button>
   </div>
+
   <div class="milestone-popup" id="milestonePopup">
     <h2>Hey! you reached a milestone!</h2>
     <p id="milestoneMessage"></p>
     <button onclick="closeMilestone()">YAY!</button>
   </div>
+
   <div class="tooltip" id="tooltip"></div>
   <canvas id="confettiCanvas"></canvas>
 
-  <!-- Firebase + App Logic -->
+  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // 🔥 Your Firebase config (replace with your own from Firebase console)
+    // TODO: replace with your Firebase config
     const firebaseConfig = {
         apiKey: "AIzaSyBuqioHpV2js61OXjbe5Wg4-Rkvv42b-2A",
         authDomain: "my-site-f7ffc.firebaseapp.com",
@@ -85,8 +92,8 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const userDoc = doc(db, "progress", "sharedUser");
 
-    // --- DOM Elements
     const grid = document.getElementById('grid');
     const popup = document.getElementById('popup');
     const errorPopup = document.getElementById('errorPopup');
@@ -112,46 +119,72 @@
       100: "Nothing special here, 100 just looks good<br>Now go text Shruti - 'Milestone 3!'"
     };
 
-    // --- Firestore Helpers
-    async function loadProgress() {
-      const docRef = doc(db, "siteTracker", "user1");
-      const snap = await getDoc(docRef);
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
+    function launchConfetti() {
+      const confetti = Array.from({ length: 100 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        r: Math.random() * 6 + 4,
+        d: Math.random() * 10 + 2,
+        color: `hsl(${Math.random() * 360}, 70%, 60%)`
+      }));
+      function draw() {
+        confettiCtx.clearRect(0, 0, canvas.width, canvas.height);
+        confetti.forEach(c => {
+          confettiCtx.beginPath();
+          confettiCtx.arc(c.x, c.y, c.r, 0, Math.PI * 2, false);
+          confettiCtx.fillStyle = c.color;
+          confettiCtx.fill();
+          c.y += c.d;
+        });
+        if (confetti.some(c => c.y < canvas.height)) requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    function showMilestone(message) {
+      milestoneMessage.innerHTML = message;
+      milestonePopup.style.display = 'block';
+      launchConfetti();
+    }
+    window.closeMilestone = () => milestonePopup.style.display = 'none';
+    window.closeErrorPopup = () => errorPopup.style.display = 'none';
+
+    async function loadData() {
+      const snap = await getDoc(userDoc);
       if (snap.exists()) {
         const data = snap.data();
         completedDays = data.completedDays || [];
         siteEntries = data.siteEntries || {};
         lastClickedDate = data.lastClickedDate || null;
-        nextDay = completedDays.length + 1;
+      } else {
+        await setDoc(userDoc, { completedDays: [], siteEntries: {}, lastClickedDate: null });
       }
+      nextDay = completedDays.length + 1;
       renderGrid();
     }
 
-    async function saveProgress() {
-      const docRef = doc(db, "siteTracker", "user1");
-      await setDoc(docRef, {
-        completedDays,
-        siteEntries,
-        lastClickedDate
-      });
-    }
-
-    // --- UI & Logic
     function renderGrid() {
-      grid.innerHTML = "";
+      grid.innerHTML = '';
       for (let i = 1; i <= 100; i++) {
         const tile = document.createElement('div');
         tile.className = 'tile';
         tile.innerText = i;
-
         if (completedDays.includes(i)) tile.classList.add('completed');
         if (i !== nextDay && !completedDays.includes(i)) tile.classList.add('disabled');
 
         tile.addEventListener('mouseenter', e => {
           if (!isMobile && tile.classList.contains('completed') && siteEntries[i]) {
-            tooltip.innerHTML = `<strong>Name:</strong> ${siteEntries[i].siteName}<br>
-                                <strong>Details:</strong> ${siteEntries[i].siteDetails}<br>
-                                <strong>Date:</strong> ${siteEntries[i].date}`;
+            tooltip.innerHTML =
+              `<strong>Name:</strong> ${siteEntries[i].siteName}<br>
+               <strong>Details:</strong> ${siteEntries[i].siteDetails}<br>
+               <strong>Date:</strong> ${siteEntries[i].date}`;
             tooltip.style.display = 'block';
             tooltip.style.top = (e.pageY + 15) + 'px';
             tooltip.style.left = (e.pageX + 15) + 'px';
@@ -163,71 +196,58 @@
             tooltip.style.left = (e.pageX + 15) + 'px';
           }
         });
-        tile.addEventListener('mouseleave', () => {
-          if (!isMobile) tooltip.style.display = 'none';
-        });
-        tile.addEventListener('click', e => {
-          if (isMobile && tile.classList.contains('completed') && siteEntries[i]) {
-            tooltip.innerHTML = `<strong>Name:</strong> ${siteEntries[i].siteName}<br>
-                                <strong>Details:</strong> ${siteEntries[i].siteDetails}<br>
-                                <strong>Date:</strong> ${siteEntries[i].date}<br>
-                                <button onclick="tooltip.style.display='none'">Close</button>`;
-            tooltip.style.display = 'block';
-            tooltip.style.top = '40%';
-            tooltip.style.left = '50%';
-            tooltip.style.transform = 'translateX(-50%)';
-            tooltip.style.pointerEvents = 'auto';
-            return;
-          }
+        tile.addEventListener('mouseleave', () => { if (!isMobile) tooltip.style.display = 'none'; });
+
+        tile.addEventListener('click', () => {
           if (i === nextDay) {
-            if (nextDay >= 4 && lastClickedDate === today) {
+            if (lastClickedDate === today) {
               errorPopup.style.display = 'block';
               return;
             }
             currentTile = i;
             popup.style.display = 'block';
+          } else if (isMobile && tile.classList.contains('completed') && siteEntries[i]) {
+            tooltip.innerHTML =
+              `<strong>Name:</strong> ${siteEntries[i].siteName}<br>
+               <strong>Details:</strong> ${siteEntries[i].siteDetails}<br>
+               <strong>Date:</strong> ${siteEntries[i].date}<br>
+               <button onclick="tooltip.style.display='none'">Close</button>`;
+            tooltip.style.display = 'block';
+            tooltip.style.top = '40%';
+            tooltip.style.left = '50%';
+            tooltip.style.transform = 'translateX(-50%)';
+            tooltip.style.pointerEvents = 'auto';
           }
         });
-
         grid.appendChild(tile);
       }
     }
 
-    function closeErrorPopup() { errorPopup.style.display = 'none'; }
-    window.closeErrorPopup = closeErrorPopup;
-
-    async function saveEntry() {
+    window.saveEntry = async function() {
       const siteName = siteNameInput.value.trim();
       const siteDetails = siteDetailsInput.value.trim();
       if (!siteName || !siteDetails) return alert("Please fill in both fields.");
 
       const date = new Date().toLocaleDateString();
       siteEntries[currentTile] = { siteName, siteDetails, date };
-
       completedDays.push(currentTile);
       lastClickedDate = today;
       nextDay++;
 
+      await updateDoc(userDoc, {
+        siteEntries,
+        completedDays,
+        lastClickedDate
+      });
+
       if (milestones[currentTile]) showMilestone(milestones[currentTile]);
-
-      await saveProgress();
-      renderGrid();
-
       popup.style.display = 'none';
       siteNameInput.value = '';
       siteDetailsInput.value = '';
-    }
-    window.saveEntry = saveEntry;
+      renderGrid();
+    };
 
-    function showMilestone(message) {
-      milestoneMessage.innerHTML = message;
-      milestonePopup.style.display = 'block';
-    }
-    function closeMilestone() { milestonePopup.style.display = 'none'; }
-    window.closeMilestone = closeMilestone;
-
-    // Init
-    loadProgress();
+    loadData();
   </script>
 </body>
 </html>
