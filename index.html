@@ -207,14 +207,10 @@
         tile.addEventListener('mouseleave', () => { if (!isMobile) tooltip.style.display = 'none'; });
 
         tile.addEventListener('click', () => {
-          if (i === nextDay) {
-            if (lastClickedDate === today) {
-              errorPopup.style.display = 'block';
-              return;
-            }
-            currentTile = i;
-            popup.style.display = 'block';
-          } else if (isMobile && tile.classList.contains('completed') && siteEntries[i]) {
+            if (i === nextDay) {
+              currentTile = i;
+              popup.style.display = 'block';
+            } else if (isMobile && tile.classList.contains('completed') && siteEntries[i]) {
             tooltip.innerHTML =
               `<strong>Name:</strong> ${siteEntries[i].siteName}<br>
                <strong>Details:</strong> ${siteEntries[i].siteDetails}<br>
