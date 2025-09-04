@@ -232,35 +232,39 @@
     }
 
     window.saveEntry = async function() {
-    const siteName = siteNameInput.value.trim();
-    const siteDetails = siteDetailsInput.value.trim();
-    if (!siteName || !siteDetails) return alert("Please fill in both fields.");
+  const siteName = siteNameInput.value.trim();
+  const siteDetails = siteDetailsInput.value.trim();
+  if (!siteName || !siteDetails) return alert("Please fill in both fields.");
+
+  const date = getTodayISO();
   
-    const date = getTodayISO();
-    
-    // save entry
-    siteEntries[currentTile] = { siteName, siteDetails, date };
-  
-    // prevent duplicates in completedDays
-    if (!completedDays.includes(currentTile)) {
-      completedDays.push(currentTile);
-    }
-  
-    lastClickedDate = date;
-    nextDay++;
-  
-    await updateDoc(userDoc, {
-      siteEntries,
-      completedDays,
-      lastClickedDate
-    });
-  
-    if (milestones[currentTile]) showMilestone(milestones[currentTile]);
-    popup.style.display = 'none';
-    siteNameInput.value = '';
-    siteDetailsInput.value = '';
-    renderGrid();
-  };
+  // save entry
+  siteEntries[currentTile] = { siteName, siteDetails, date };
+
+  // prevent duplicates in completedDays
+  if (!completedDays.includes(currentTile)) {
+    completedDays.push(currentTile);
+  }
+
+  lastClickedDate = date;
+
+  await updateDoc(userDoc, {
+    siteEntries,
+    completedDays,
+    lastClickedDate
+  });
+
+  if (milestones[currentTile]) showMilestone(milestones[currentTile]);
+
+  popup.style.display = 'none';
+  siteNameInput.value = '';
+  siteDetailsInput.value = '';
+
+  // 🔑 Recalculate instead of increment
+  nextDay = completedDays.length + 1;
+
+  renderGrid();
+};
 
     loadData();
   </script>
