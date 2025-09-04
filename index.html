@@ -156,19 +156,27 @@
     window.closeMilestone = () => milestonePopup.style.display = 'none';
     window.closeErrorPopup = () => errorPopup.style.display = 'none';
 
-    async function loadData() {
-      const snap = await getDoc(userDoc);
-      if (snap.exists()) {
-        const data = snap.data();
-        completedDays = data.completedDays || [];
-        siteEntries = data.siteEntries || {};
-        lastClickedDate = data.lastClickedDate || null;
-      } else {
-        await setDoc(userDoc, { completedDays: [], siteEntries: {}, lastClickedDate: null });
-      }
-      nextDay = completedDays.length + 1;
-      renderGrid();
+    
+  function getTodayISO() {
+    const d = new Date();
+    return d.toISOString().split('T')[0]; // e.g. "2025-09-04"
+  }
+  
+  async function loadData() {
+    const snap = await getDoc(userDoc);
+    if (snap.exists()) {
+      const data = snap.data();
+      completedDays = data.completedDays || [];
+      siteEntries = data.siteEntries || {};
+      lastClickedDate = data.lastClickedDate || null;
+    } else {
+      await setDoc(userDoc, { completedDays: [], siteEntries: {}, lastClickedDate: null });
     }
+    today = getTodayISO();   // ensure ISO format
+    nextDay = completedDays.length + 1;
+    renderGrid();
+  }
+    
 
     function renderGrid() {
       grid.innerHTML = '';
@@ -224,28 +232,35 @@
     }
 
     window.saveEntry = async function() {
-      const siteName = siteNameInput.value.trim();
-      const siteDetails = siteDetailsInput.value.trim();
-      if (!siteName || !siteDetails) return alert("Please fill in both fields.");
-
-      const date = new Date().toLocaleDateString();
-      siteEntries[currentTile] = { siteName, siteDetails, date };
+    const siteName = siteNameInput.value.trim();
+    const siteDetails = siteDetailsInput.value.trim();
+    if (!siteName || !siteDetails) return alert("Please fill in both fields.");
+  
+    const date = getTodayISO();
+    
+    // save entry
+    siteEntries[currentTile] = { siteName, siteDetails, date };
+  
+    // prevent duplicates in completedDays
+    if (!completedDays.includes(currentTile)) {
       completedDays.push(currentTile);
-      lastClickedDate = today;
-      nextDay++;
-
-      await updateDoc(userDoc, {
-        siteEntries,
-        completedDays,
-        lastClickedDate
-      });
-
-      if (milestones[currentTile]) showMilestone(milestones[currentTile]);
-      popup.style.display = 'none';
-      siteNameInput.value = '';
-      siteDetailsInput.value = '';
-      renderGrid();
-    };
+    }
+  
+    lastClickedDate = date;
+    nextDay++;
+  
+    await updateDoc(userDoc, {
+      siteEntries,
+      completedDays,
+      lastClickedDate
+    });
+  
+    if (milestones[currentTile]) showMilestone(milestones[currentTile]);
+    popup.style.display = 'none';
+    siteNameInput.value = '';
+    siteDetailsInput.value = '';
+    renderGrid();
+  };
 
     loadData();
   </script>
