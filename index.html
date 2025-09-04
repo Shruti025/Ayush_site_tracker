@@ -2,165 +2,230 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>100-Day Challenge Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>100 Site Visit Tracker</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-    button { padding: 10px 20px; margin-top: 20px; font-size: 16px; cursor: pointer; }
-    #progress { margin-top: 20px; font-size: 18px; }
-    #milestonePopup {
-      display: none; position: fixed; top: 50%; left: 50%;
-      transform: translate(-50%, -50%); background: white; border: 2px solid #333;
-      padding: 20px; z-index: 1000; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(to right, #ffecd2, #fcb69f);
+      color: #333;
+      padding: 20px;
     }
-    #confettiCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    h1 { margin-bottom: 30px; font-size: 2.2rem; color: #4e4e4e; text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(45px, 1fr)); gap: 10px; max-width: 500px; width: 100%; }
+    .tile { width: 100%; aspect-ratio: 1/1; background-color: white; border: 2px solid #ff7f50; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; font-weight: bold; transition: all 0.3s ease; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); }
+    .tile:hover:not(.disabled):not(.completed) { background-color: #ffe4d1; transform: scale(1.05); }
+    .completed { background-color: #ff7f50; color: white; text-decoration: line-through; }
+    .disabled { cursor: not-allowed; opacity: 0.5; }
+    .popup, .error-popup, .milestone-popup {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: white; padding: 30px; border-radius: 16px; text-align: center;
+      z-index: 3000; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); display: none;
+    }
+    .popup input, .popup textarea { width: 90%; margin-bottom: 10px; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
+    .popup button, .error-popup button, .milestone-popup button {
+      background: #ff7f50; border: none; padding: 10px 20px;
+      border-radius: 10px; color: white; font-weight: bold; cursor: pointer;
+    }
+    .tooltip {
+      position: absolute; background-color: white; color: #333; padding: 15px;
+      border-radius: 12px; font-size: 0.95rem; display: none; z-index: 2000;
+      max-width: 280px; word-wrap: break-word; line-height: 1.5;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2); border: 1px solid #ff7f50;
+      text-align: left; pointer-events: none;
+    }
+    canvas { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 2999; }
   </style>
 </head>
 <body>
-  <h1>💪 100-Day Challenge Tracker</h1>
-  <button onclick="markToday()">Mark Today ✅</button>
-  <div id="progress">Loading progress...</div>
+  <h1>💗 100 Site Visit Challenge 💗</h1>
+  <div class="grid" id="grid"></div>
 
-  <!-- Milestone Popup -->
-  <div id="milestonePopup">
+  <!-- Popups -->
+  <div class="popup" id="popup">
+    <h3>Add Site Details</h3>
+    <input type="text" id="siteName" placeholder="Site Name">
+    <textarea id="siteDetails" rows="3" placeholder="Details"></textarea>
+    <button onclick="saveEntry()">Save</button>
+  </div>
+  <div class="error-popup" id="errorPopup">
+    <h3>Haha! Nice try.</h3>
+    <p>Only one site visit per day.</p>
+    <button onclick="closeErrorPopup()">Okay, Smart move Shruti</button>
+  </div>
+  <div class="milestone-popup" id="milestonePopup">
     <h2>Hey! you reached a milestone!</h2>
     <p id="milestoneMessage"></p>
-    <button onclick="closePopup()">YAY!</button>
+    <button onclick="closeMilestone()">YAY!</button>
   </div>
-
+  <div class="tooltip" id="tooltip"></div>
   <canvas id="confettiCanvas"></canvas>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase + App Logic -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc }
-      from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Your Firebase config (replace with yours!)
+    // 🔥 Your Firebase config (replace with your own from Firebase console)
     const firebaseConfig = {
-      apiKey: "AIzaSyBuqioHpV2js61OXjbe5Wg4-Rkvv42b-2A",
-      authDomain: "my-site-f7ffc.firebaseapp.com",
-      projectId: "my-site-f7ffc",
-      storageBucket: "my-site-f7ffc.firebasestorage.app",
-      messagingSenderId: "645797132331",
-      appId: "1:645797132331:web:5fe5d070d4878653f7526e",
-      measurementId: "G-3YWS57BFSD"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
-    // Init Firebase + Firestore
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const progressEl = document.getElementById("progress");
-    const popup = document.getElementById("milestonePopup");
-    const popupMsg = document.getElementById("milestoneMessage");
-    const confettiCanvas = document.getElementById("confettiCanvas");
-    const ctx = confettiCanvas.getContext("2d");
-    let confetti = [];
+    // --- DOM Elements
+    const grid = document.getElementById('grid');
+    const popup = document.getElementById('popup');
+    const errorPopup = document.getElementById('errorPopup');
+    const milestonePopup = document.getElementById('milestonePopup');
+    const tooltip = document.getElementById('tooltip');
+    const milestoneMessage = document.getElementById('milestoneMessage');
+    const siteNameInput = document.getElementById('siteName');
+    const siteDetailsInput = document.getElementById('siteDetails');
+    const canvas = document.getElementById('confettiCanvas');
+    const confettiCtx = canvas.getContext('2d');
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    // Fetch saved progress
+    let completedDays = [];
+    let siteEntries = {};
+    let nextDay = 1;
+    let today = new Date().toLocaleDateString();
+    let lastClickedDate = null;
+    let currentTile = null;
+
+    const milestones = {
+      16: "Are you like, Shruti why 16? Well obviously because it's your birth-date cutuu<br>Now go text Shruti - 'Milestone 1!'",
+      46: "Why 46? Well, you need to tell me<br>Now go text Shruti - 'Milestone 2!'",
+      100: "Nothing special here, 100 just looks good<br>Now go text Shruti - 'Milestone 3!'"
+    };
+
+    // --- Firestore Helpers
     async function loadProgress() {
-      const ref = doc(db, "progress", "user1");
-      const snap = await getDoc(ref);
-      let data = snap.exists() ? snap.data() : { count: 0, days: {} };
-      progressEl.textContent = `Progress: ${data.count}/100 days`;
-      return data;
-    }
+      const docRef = doc(db, "siteTracker", "user1");
+      const snap = await getDoc(docRef);
 
-    // Mark today’s entry
-    async function markToday() {
-      const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-      const ref = doc(db, "progress", "user1");
-
-      let data = await loadProgress();
-
-      if (data.days[today]) {
-        alert("You’ve already marked today!");
-        return;
+      if (snap.exists()) {
+        const data = snap.data();
+        completedDays = data.completedDays || [];
+        siteEntries = data.siteEntries || {};
+        lastClickedDate = data.lastClickedDate || null;
+        nextDay = completedDays.length + 1;
       }
-
-      data.days[today] = true;
-      data.count = (data.count || 0) + 1;
-
-      await setDoc(ref, data);
-      progressEl.textContent = `Progress: ${data.count}/100 days`;
-
-      checkMilestone(data.count);
+      renderGrid();
     }
 
-    window.markToday = markToday;
-
-    // Milestones
-    function checkMilestone(count) {
-      let message = "";
-      if (count === 16) message = "hey its 16 🎉";
-      if (count === 58) message = "yoo that's crazy 🚀";
-      if (count === 100) message = "finally done 🏆";
-
-      if (message) {
-        popupMsg.textContent = message;
-        popup.style.display = "block";
-        startConfetti();
-      }
-    }
-
-    function closePopup() {
-      popup.style.display = "none";
-      stopConfetti();
-    }
-
-    // Confetti
-    function startConfetti() {
-      confetti = Array.from({ length: 200 }, () => ({
-        x: Math.random() * confettiCanvas.width,
-        y: Math.random() * confettiCanvas.height - confettiCanvas.height,
-        r: Math.random() * 6 + 4,
-        d: Math.random() * 10 + 10,
-        color: `hsl(${Math.random() * 360}, 100%, 50%)`,
-        tilt: Math.random() * 10 - 10,
-        tiltAngleIncremental: Math.random() * 0.07 + 0.05,
-        tiltAngle: 0
-      }));
-      requestAnimationFrame(drawConfetti);
-    }
-
-    function drawConfetti() {
-      ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-      confetti.forEach(c => {
-        ctx.beginPath();
-        ctx.lineWidth = c.r / 2;
-        ctx.strokeStyle = c.color;
-        ctx.moveTo(c.x + c.tilt + c.r / 4, c.y);
-        ctx.lineTo(c.x + c.tilt, c.y + c.tilt + c.r / 4);
-        ctx.stroke();
-      });
-      updateConfetti();
-      requestAnimationFrame(drawConfetti);
-    }
-
-    function updateConfetti() {
-      confetti.forEach(c => {
-        c.tiltAngle += c.tiltAngleIncremental;
-        c.y += (Math.cos(c.d) + 3 + c.r / 2) / 2;
-        c.x += Math.sin(c.d);
-        c.tilt = Math.sin(c.tiltAngle - c.r / 2) * 15;
-        if (c.y > confettiCanvas.height) {
-          c.y = -10; c.x = Math.random() * confettiCanvas.width;
-        }
+    async function saveProgress() {
+      const docRef = doc(db, "siteTracker", "user1");
+      await setDoc(docRef, {
+        completedDays,
+        siteEntries,
+        lastClickedDate
       });
     }
 
-    function stopConfetti() { confetti = []; }
+    // --- UI & Logic
+    function renderGrid() {
+      grid.innerHTML = "";
+      for (let i = 1; i <= 100; i++) {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.innerText = i;
 
-    // Resize canvas
-    function resizeCanvas() {
-      confettiCanvas.width = window.innerWidth;
-      confettiCanvas.height = window.innerHeight;
+        if (completedDays.includes(i)) tile.classList.add('completed');
+        if (i !== nextDay && !completedDays.includes(i)) tile.classList.add('disabled');
+
+        tile.addEventListener('mouseenter', e => {
+          if (!isMobile && tile.classList.contains('completed') && siteEntries[i]) {
+            tooltip.innerHTML = `<strong>Name:</strong> ${siteEntries[i].siteName}<br>
+                                <strong>Details:</strong> ${siteEntries[i].siteDetails}<br>
+                                <strong>Date:</strong> ${siteEntries[i].date}`;
+            tooltip.style.display = 'block';
+            tooltip.style.top = (e.pageY + 15) + 'px';
+            tooltip.style.left = (e.pageX + 15) + 'px';
+          }
+        });
+        tile.addEventListener('mousemove', e => {
+          if (!isMobile && tooltip.style.display === 'block') {
+            tooltip.style.top = (e.pageY + 15) + 'px';
+            tooltip.style.left = (e.pageX + 15) + 'px';
+          }
+        });
+        tile.addEventListener('mouseleave', () => {
+          if (!isMobile) tooltip.style.display = 'none';
+        });
+        tile.addEventListener('click', e => {
+          if (isMobile && tile.classList.contains('completed') && siteEntries[i]) {
+            tooltip.innerHTML = `<strong>Name:</strong> ${siteEntries[i].siteName}<br>
+                                <strong>Details:</strong> ${siteEntries[i].siteDetails}<br>
+                                <strong>Date:</strong> ${siteEntries[i].date}<br>
+                                <button onclick="tooltip.style.display='none'">Close</button>`;
+            tooltip.style.display = 'block';
+            tooltip.style.top = '40%';
+            tooltip.style.left = '50%';
+            tooltip.style.transform = 'translateX(-50%)';
+            tooltip.style.pointerEvents = 'auto';
+            return;
+          }
+          if (i === nextDay) {
+            if (nextDay >= 4 && lastClickedDate === today) {
+              errorPopup.style.display = 'block';
+              return;
+            }
+            currentTile = i;
+            popup.style.display = 'block';
+          }
+        });
+
+        grid.appendChild(tile);
+      }
     }
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
 
-    // Load initial progress
+    function closeErrorPopup() { errorPopup.style.display = 'none'; }
+    window.closeErrorPopup = closeErrorPopup;
+
+    async function saveEntry() {
+      const siteName = siteNameInput.value.trim();
+      const siteDetails = siteDetailsInput.value.trim();
+      if (!siteName || !siteDetails) return alert("Please fill in both fields.");
+
+      const date = new Date().toLocaleDateString();
+      siteEntries[currentTile] = { siteName, siteDetails, date };
+
+      completedDays.push(currentTile);
+      lastClickedDate = today;
+      nextDay++;
+
+      if (milestones[currentTile]) showMilestone(milestones[currentTile]);
+
+      await saveProgress();
+      renderGrid();
+
+      popup.style.display = 'none';
+      siteNameInput.value = '';
+      siteDetailsInput.value = '';
+    }
+    window.saveEntry = saveEntry;
+
+    function showMilestone(message) {
+      milestoneMessage.innerHTML = message;
+      milestonePopup.style.display = 'block';
+    }
+    function closeMilestone() { milestonePopup.style.display = 'none'; }
+    window.closeMilestone = closeMilestone;
+
+    // Init
     loadProgress();
   </script>
 </body>
